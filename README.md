@@ -25,4 +25,3 @@ Just for me
 --------------
 `uv venv` to initialize the venv
 `uv pip install -r requirements.txt` install all necessary packages
-
