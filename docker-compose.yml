@@ -1,0 +1,41 @@
+services:
+  # Define your FastAPI backend service
+  backend:
+    # Build the image using the Dockerfile
+    build:
+      context: .  # Build context is the current directory
+      dockerfile: Dockerfile  # Use the Dockerfile we created
+    
+    # Name for the running container
+    container_name: senyaweb-backend
+    
+    # Port mapping: expose_port:container_port
+    # Access your app at http://localhost:8000
+    ports:
+      - "8000:8000"
+    
+    # Environment variables for the container
+    # These are loaded from .env file
+    env_file:
+      - .env.dev
+    
+    # Volume mounts for development (hot-reload)
+    # Maps your local directory to the container directory
+    volumes:
+      - .:/app  # Mount current directory to /app in container
+    
+    # Keep container running even if the main process exits
+    stdin_open: true
+    tty: true
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Network configuration
+    networks:
+      - senyaweb-network
+
+# Define networks used by services
+networks:
+  senyaweb-network:
+    driver: bridge  # Bridge network allows containers to communicate
