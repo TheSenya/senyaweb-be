@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "SenyaWeb"
 
+    
+
     # Define your variables here. They will be read from the .env file.
     # DATABASE_URL: str
     # SECRET_KEY: str

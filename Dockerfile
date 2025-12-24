@@ -2,6 +2,8 @@
 # python:3.11-slim is a lightweight version with only essential packages
 FROM python:3.11-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1
+
 # Set working directory inside the container
 # All subsequent commands will run from this directory
 WORKDIR /app
