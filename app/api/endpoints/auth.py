@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from types import str, bool
+from typing import str, bool
 
 router = APIRouter(
     prefix="/auth",
@@ -7,10 +7,10 @@ router = APIRouter(
     response={403: {'description': "N/A"}}
 )
 
-@router.post("/password")
-def authenticate_password(password: str) -> {str, bool}:
-    if password == "password":
+@router.post("/passcode", response_model={str, bool})
+def authenticate_passcode(passcode: str) -> {str, bool}:
+    if passcode == "passcode":
         return {"success": True}
     else:
         return {"success": False}
-    
+
