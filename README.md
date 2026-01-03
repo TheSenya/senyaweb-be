@@ -25,3 +25,10 @@ Just for me
 --------------
 `uv venv` to initialize the venv
 `uv pip install -r requirements.txt` install all necessary packages
+
+--------------
+### Hostings 
+--------------
+- route 53 for domain name
+- cloudflare for tunnel
+- route DNS from route 53 to cloudflare
