@@ -10,15 +10,18 @@ app = FastAPI(
     version = "0.0.1",
 )
 
-origins = ["http://localhost:5173", "http://127.0.0.1:5173"],
+from app.core.config import settings
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, # Allows origins only from the provided sources
+    allow_origins=settings.CORS_ORIGINS, # Allows origins only from the provided sources
     allow_credentials=True,
     allow_methods=["*"], # Allow all HTTP methods (GET, POST, PUT, DELETE)
     allow_headers=["*"], # Allow all headers (Authorization, Content-Type)
 )
+
+from app.api.endpoints import auth
+app.include_router(auth.router)
 
 @app.get("/")
 async def root():

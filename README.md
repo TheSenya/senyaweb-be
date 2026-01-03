@@ -32,3 +32,8 @@ Just for me
 - route 53 for domain name
 - cloudflare for tunnel
 - route DNS from route 53 to cloudflare
+
+--------------
+### Production
+--------------
+docker compose -f docker-compose.yml up -d
