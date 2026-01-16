@@ -21,7 +21,9 @@ app.add_middleware(
 )
 
 from app.api.endpoints import auth
+from app.api.endpoints import ai
 app.include_router(auth.router)
+app.include_router(ai.router)
 
 @app.get("/")
 async def root():

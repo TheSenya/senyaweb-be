@@ -37,3 +37,5 @@ Just for me
 ### Production
 --------------
 docker compose -f docker-compose.yml up -d
+
+IMPORTANT inorder for cloudflare tunnel to work we need both FE and BE to be on the same docker compose and on the same network

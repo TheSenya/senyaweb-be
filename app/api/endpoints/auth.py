@@ -18,3 +18,12 @@ def authenticate_passcode(request: PasscodeRequest):
     else:
         return {"success": False}
 
+#TODO: implement login and logout
+@router.post("/login")
+def login():
+    return {"success": False}
+
+#TODO: implement login and logout
+@router.post("/logout")
+def logout():
+    return {"success": False}

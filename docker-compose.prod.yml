@@ -27,12 +27,12 @@ services:
       - senyaweb-network
 
   tunnel:
+    env_file:
+      - .env.prod
     container_name: cloudflared-tunnel
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel --no-autoupdate run
-    environment:
-      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
     networks:
       - senyaweb-network
 
