@@ -9,4 +9,5 @@ venv/
 .git
 .gitignore
 .dockerignore
-.env.prod
+.env
+.env.local

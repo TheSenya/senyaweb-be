@@ -6,8 +6,8 @@ from typing import Any
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
-# Determine the environment ('dev', 'prod', etc.). Defaults to 'dev' if APP_ENV is not set.
-APP_ENV = os.getenv("APP_ENV", "dev")
+# Determine the environment ('dev', 'prod', etc.). Defaults to 'dev' if ENV is not set.
+ENV = os.getenv("ENV", "local") # TODO: find a better way to handle setting the env I don't think using ignore is the best option
 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
@@ -15,6 +15,9 @@ class Settings(BaseSettings):
 
     PASSCODE: str = ""
     CORS_ORIGINS: list[str] | str = []
+
+    #### API KEYS ####
+    GOOGLE_AI_STUDIO_API_KEY: str = ""
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
@@ -28,6 +31,7 @@ class Settings(BaseSettings):
     # SECRET_KEY: str
 
     class Config:
-        env_file = f".env.{APP_ENV}"
+        env_file = f".env.{ENV}"
+        extra = "ignore" # TODO: find a better solution to do this
 
 settings = Settings()
