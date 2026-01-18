@@ -8,8 +8,17 @@ from app.core.config import settings
 from google import genai
 from openrouter import OpenRouter
 
+from app.core.db import create_db_and_tables
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for the FastAPI application.
+    This handles the startup and shutdown logic.
+    """
+    
+    # Initialize DB (create tables)
+    create_db_and_tables()
     """
     Lifespan context manager for the FastAPI application.
     This handles the startup and shutdown logic.

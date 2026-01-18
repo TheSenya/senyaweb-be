@@ -110,7 +110,7 @@ async def get_openrouter_credits(request: Request):
         # Map SDK response to our Schema
         # Assuming credits object has 'usage' and 'limit' attributes based on API docs
         print(credits)
-        return {"data": credits}
+        return {"credits": credits}
     except Exception as e:
         print(f"Error fetching credits: {e}")
         # Return empty/zero defaults on error to match schema
