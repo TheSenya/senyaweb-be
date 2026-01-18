@@ -2,12 +2,40 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from app.core.config import settings
+
+from google import genai
+from openrouter import OpenRouter
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for the FastAPI application.
+    This handles the startup and shutdown logic.
+    """
+
+    # Create the openrouter client
+    print("🚀 Initializing OpenRouter client...")
+    app.state.openrouter = OpenRouter(settings.OPENROUTER_KEY)
+    print("✅ OpenRouter client initialized")
+
+    # Create the gemini client
+    print("🚀 Initializing Gemini client...")
+    app.state.gemini = genai.Client(api_key=settings.GOOGLE_AI_STUDIO_API_KEY)
+    print("✅ Gemini client initialized")
+
+
+    yield
+
+    print("Shutting down...")
 
 # --- App Initialization & Metadata ---
 app = FastAPI(
     title = "Senya Web",
     description = "A site for myself to do the things I want",
     version = "0.0.1",
+    lifespan=lifespan
 )
 
 from app.core.config import settings

@@ -13,6 +13,7 @@ httpcore==1.0.9
 httptools==0.7.1
 httpx==0.28.1
 idna==3.11
+openrouter==0.1.1
 pyasn1==0.6.2
 pyasn1-modules==0.4.2
 pydantic==2.12.5
