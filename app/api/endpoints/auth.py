@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from app.core.config import settings
+from app.middleware.security import rate_limit_gaurd
 
 class PasscodeRequest(BaseModel):
     passcode: str
@@ -11,12 +12,15 @@ router = APIRouter(
     responses={403: {'description': "N/A"}}
 )
 
-@router.post("/passcode")
+@router.post("/passcode", dependencies=[Depends(rate_limit_gaurd)])
 def authenticate_passcode(request: PasscodeRequest):
     if request.passcode == settings.PASSCODE:
         return {"success": True}
     else:
-        return {"success": False}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid passcode"
+        )
 
 #TODO: implement login and logout
 @router.post("/login")
