@@ -6,12 +6,23 @@ from app.main import app
 from app.middleware import security
 from app.middleware.security import Blocked, BLOCKED, MAX_FAILURES
 from app.core.config import settings
+from unittest.mock import patch
+from app.middleware.encryption import EncrpytionMiddleware
 
 client = TestClient(app)
 
 class TestRateLimiting:
     """Test suite for rate limiting functionality"""
     
+    @pytest.fixture(autouse=True)
+    def bypass_encryption(self):
+        """Bypass encryption middleware for these tests"""
+        async def mock_dispatch(self, request, call_next):
+            return await call_next(request)
+            
+        with patch.object(EncrpytionMiddleware, "dispatch", side_effect=mock_dispatch, autospec=True):
+            yield
+
     def setup_method(self):
         """Clear blocked IPs before each test"""
         security.BLOCKED.clear()

@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -8,13 +8,52 @@ import json  # Standard library for parsing JSON data
 import time  # Standard library for getting the current system time (for replay protection)
 import asyncio
 
-TEST_ENCRYPTION_KEY="asdqwe"
+from fastapi import Request
+
+SERVER_PRIVATE_KEY_PEM = b"""-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC8FD9bwnSNvUC0
+E18v1yBVO7zrWWIqUzaCsIkIxFozwOl/geut4iauMEzsKcMqZ9YQBNlNv/cvck+X
+vQMJKyDl67+ueZh7P7YvwbrperU7TpdLADTHWGEVycH03poWgvcj120Wc8SH6NIv
+pc7KMKU4EpDSBccN50IWuEOoI5lErB188RGuN5lTnEqkvNZs+z0lP8OlO76vhnBc
+JWTu7euOlffLSbv94MWNcmPa3dF5ySD8v1JfjAgWTL3Tp/2mctSzxvUb0eOnf0RT
+d3/oq5z+gds7J3DWP/zT34yr5M8eAcfj41qqfylCq4bidrv4Q2AU1ZXaYVkSJFXb
+BLOsDpBhAgMBAAECggEAK7gwLzIRWmZhDUsIgCwre6ymgnXVZB3SSMhlHljYV/ny
+vT1T7ehpUenv46DkmW2oPLKH2fMy8EBMAKuC8mVoYRHvTY099P5vKQRJYN8xlC71
+a82JN0KT1NcAw11gZ7W7YcVAuiyghXBJNaK/IlBzA4kLSYrmxdRZUEM2lPXreaL7
+s/H0DypjjtGY5otlSHyRXgGqkGyFY08RCRGSvLRHCoHpsNt3ic5ddw7lAvCn7/MI
+cvlUPKgz9M4wz3YNVBfE5/b4EDvNqeBBT4kjIbgHBkNkbaUXo/oU8CYWZDlopPD8
+nntuWXCh14IUJnknUUVSn56HZesNT3EVdqcLrnX3DQKBgQDe4hyUpq8lHk1xtK71
+OqN8Z7EJxwLHuX6bCf0oR6C66FjLF9SH7Bkmc2llFv8/rhLpuSOokVk4TZ9+bRge
+Z12QHv1qI80SYwfmRqLbsJWhY4EU1M0x/8jY2y9FGUC4ffHFloEFYHadCRUsU4Pn
+sQFvioGtWItyOhpPW8Oce5i9rQKBgQDYBkcl2eoiG42KVEyUReSP8aMzaV9v3K2P
+L6f/pkN8VLSfzSLhlMzDYzYo27qGx19htRDMRFmgpu1amIK+OlR9WsblTQItPP1g
+yMl0mBX4aGTt45+jUl4jIa2LRIV7TmEOCU8t3UoM1opOgB9CSeBuOoe/v9b/omw9
+RmJlKkHMBQKBgHB/Ynupcmfi1qYY0+JVWaV2VQahW4bh2sR4kz4cgUU193NzMMP2
+aG9e+4iZxfYnb8Zmu1ffHVBs5Z8Tg4P9Gl2fNru3HFA2igsyBgurIqtWJRYVnwio
+mYDTiRVwfJligIEByVeka9oxdm1sLfzo+9eH6pJLSf860oLRx3cZb2v1AoGACANb
+mkTWEYPSIUJ1QL7C9q/w7NRIzP5zla8f3TTOpgsCVDcoxxNc8RZ6CNP1vFAi8p3j
+zJ/wbywh+81SdDn3rlqyrAjKPuFXSMLJ7kBB+F/u9oAOCOHiSg1Swaq+BM/oe7vO
+qxXdTFKc+MJ55lyVLaGQLYWxNPRSbYdx2OzTWf0CgYAHq/C2MqoI39NiyqzIbZDC
+Vs/X0lEyRWC2edGHrOnrC6dlKuEvBbWz+/awE++E1DFHOXIA/9Z3jT4PCVG+nczd
+ufV9eR2K3rtw/9pyOwDv4SoGhcBzhpG12cedkLbv4uojoUUIWTobJ/WYmAYH9vHu
+naeP810e2l1nf2Xlbemmog==
+-----END PRIVATE KEY-----"""
+
+from app.core.config import settings
 
 # only allows for requests that are 60 seconds or younger
 MAX_REQUEST_AGE = 60
 
 # convert the PEM string into a usable Key Object for the crypto library.
-server_key = jwk.JWK.from_pem(SERVER_PRIVATE_KEY_PEM)
+try:
+    if settings.PRIVATE_KEY:
+        server_key = jwk.JWK.from_pem(settings.PRIVATE_KEY.encode('utf-8'))
+    else:
+        print("WARNING: PRIVATE_KEY is missing in settings. Encryption middleware will fail.")
+        server_key = None
+except Exception as e:
+    print(f"CRITICAL: Failed to load PRIVATE_KEY: {e}")
+    server_key = None
 
 class EncrpytionMiddleware(BaseHTTPMiddleware):
     """
@@ -40,6 +79,7 @@ class EncrpytionMiddleware(BaseHTTPMiddleware):
             if body_bytes:
                 # 2. PARSE JSON WRAPPER
                 # the frontend sends valid JSON like { "content": "eyJh..." }, we need to extract what is located in content
+                # what json.loads does is it translates either bytes or strings to python readable objects
                 body_json = json.loads(body_bytes)
                 encrypted_content = body_json.get("content")
                 
@@ -51,7 +91,6 @@ class EncrpytionMiddleware(BaseHTTPMiddleware):
                 jwetoken = jwe.JWE()  # Create a JWE object
                 jwetoken.deserialize(encrypted_content)  # Load the encrypted string
                 jwetoken.decrypt(server_key)  # Decrypt it using our private key
-
 
                 # 4. PARSE DECRYPTED PAYLOAD
                 decrypted_wrapper = json.loads(jwetoken.payload)
@@ -122,7 +161,8 @@ class EncrpytionMiddleware(BaseHTTPMiddleware):
                 # 3. ENCRYPT RESPONSE
                 # WHY: Lock the response so only the specific client who asked can read it.
                 protected_header = {"alg": "ECDH-ES+A256KW", "enc": "A256GCM"}
-                jwetoken = jwe.JWE(response_body, json.dumps(protected_header), client_key)
+                jwetoken = jwe.JWE(response_body, json.dumps(protected_header))
+                jwetoken.add_recipient(client_key)
                 encrypted_response = jwetoken.serialize(compact=True)
                 
                 # 4. RETURN NEW RESPONSE

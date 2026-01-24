@@ -48,6 +48,9 @@ app = FastAPI(
 )
 
 from app.core.config import settings
+from app.middleware.encryption import EncrpytionMiddleware
+
+app.add_middleware(EncrpytionMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
