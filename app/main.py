@@ -24,6 +24,10 @@ async def lifespan(app: FastAPI):
     This handles the startup and shutdown logic.
     """
 
+    print("\n" + "=" * 50)
+    print(f"🔧 Initializing connections")
+    print("=" * 50)
+
     # Create the openrouter client
     print("🚀 Initializing OpenRouter client...")
     app.state.openrouter = OpenRouter(settings.OPENROUTER_KEY)
@@ -34,6 +38,7 @@ async def lifespan(app: FastAPI):
     app.state.gemini = genai.Client(api_key=settings.GOOGLE_AI_STUDIO_API_KEY)
     print("✅ Gemini client initialized")
 
+    print("=" * 50 + "\n")
 
     yield
 
@@ -49,6 +54,10 @@ app = FastAPI(
 
 from app.core.config import settings
 from app.middleware.encryption import EncrpytionMiddleware
+from app.middleware.logger import LoggingMiddleware
+
+# Add logging middleware first (outermost) so it logs all requests
+app.add_middleware(LoggingMiddleware)
 
 app.add_middleware(EncrpytionMiddleware)
 

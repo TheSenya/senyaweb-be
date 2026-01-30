@@ -6,6 +6,8 @@ import httpx
 from pydantic import BaseModel
 from app.schemas.ai import OpenRouter
 
+from app.middleware.logger import log_function
+
 # TODO: need to create models 
 
 router = APIRouter(
@@ -20,6 +22,7 @@ class Chat(BaseModel):
 
 # TODO: 
 # send a single message and get a response
+@log_function(log_args=True, log_result=True)
 @router.post("/send")
 async def send_message(request: Request, chat: Chat) -> dict:
     try:
@@ -44,7 +47,7 @@ async def send_message(request: Request, chat: Chat) -> dict:
         print(f"Error generating content: {e}")
         return {"message": f"Error: {str(e)}"}
 
-@router.get("/gem_models")
+@router.post("/gem_models")
 async def get_gemini_models(request: Request):
     """List available Gemini models."""
     try:
@@ -72,7 +75,7 @@ async def get_gemini_models(request: Request):
         print(f"Error fetching models: {e}")
         return {"models": ["models/gemini-1.5-flash-latest"]}
 
-@router.get("/or_models")
+@router.post("/or_models")
 async def get_openrouter_models(request: Request): # Need Request object for app state
     try:
         client = request.app.state.openrouter
@@ -98,7 +101,7 @@ async def get_openrouter_models(request: Request): # Need Request object for app
         print(f"Error fetching OR models: {e}")
         return {"models": []}
 
-@router.get("/credits")
+@router.post("/credits")
 async def get_openrouter_credits(request: Request):
     """Fetch OpenRouter account credits/info."""
     try:
