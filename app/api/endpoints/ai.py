@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 
 from google.genai import types
 import httpx
@@ -7,13 +7,16 @@ from pydantic import BaseModel
 from app.schemas.ai import OpenRouter
 
 from app.middleware.logger import log_function
+from app.api.deps import get_current_admin
+from app.models.user import User
 
 # TODO: need to create models 
 
 router = APIRouter(
     prefix="/bingo",
-    tags=['ai'], # tags are primarily used for grouping APIs for documentation in swagger
-    responses={403: {'description': "N/A"}}
+    tags=['ai'],  # tags are primarily used for grouping APIs for documentation in swagger
+    responses={403: {'description': "Admin access required"}},
+    dependencies=[Depends(get_current_admin)]  # All endpoints in this router require admin
 )
 class Chat(BaseModel):
     message: str

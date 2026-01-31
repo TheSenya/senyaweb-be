@@ -12,9 +12,6 @@ ENV = os.getenv("ENV", "local") # TODO: find a better way to handle setting the 
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "SenyaWeb"
-    
-    # DEBUG: Check if env var is present
-    print(f"DEBUG ENV VAR: {os.environ.get('GOOGLE_AI_STUDIO_API_KEY')}")
 
     CORS_ORIGINS: list[str] | str = []
 

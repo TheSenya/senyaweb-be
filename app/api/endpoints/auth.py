@@ -3,8 +3,9 @@ from pydantic import BaseModel
 from datetime import datetime
 from sqlmodel import Session, select
 from datetime import timedelta, timezone
+from typing import Literal
 
-from app.core.config import settings
+from app.core.config import settings, ENV
 from app.core.db import get_session
 from app.api.deps import get_current_user
 from app.middleware.security import rate_limit_gaurd
@@ -12,6 +13,46 @@ from app.core.security import create_access_token, create_refresh_token, verify_
 from app.models.auth import RefreshToken
 from app.models.user import User
 from app.models.tracking import LoginAttempt
+
+
+# Determine if we're in production for secure cookie settings
+IS_PRODUCTION = ENV.lower() == "prod"
+
+
+def set_auth_cookies(
+    response: Response, 
+    access_token: str, 
+    refresh_token: str
+) -> None:
+    """
+    Set authentication cookies with proper security settings.
+    
+    In production:
+    - secure=True: Only sent over HTTPS
+    - samesite=strict: Prevents CSRF attacks
+    
+    In development:
+    - secure=False: Works over HTTP
+    - samesite=lax: More lenient for dev
+    """
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {access_token}",
+        httponly=True,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        samesite="strict" if IS_PRODUCTION else "lax",
+        secure=IS_PRODUCTION
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        expires=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        samesite="strict" if IS_PRODUCTION else "lax",
+        secure=IS_PRODUCTION
+    )
 
 
 class LoginRequest(BaseModel):
@@ -68,31 +109,20 @@ def register(response: Response, request: Request, register_data: LoginRequest, 
     session.add(db_refresh_token)
     session.commit()
     
-    # 5. Set Cookies
-    response.set_cookie(
-        key="access_token",
-        value=f"Bearer {access_token}",
-        httponly=True,
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax",
-        secure=False 
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        expires=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        samesite="lax",
-        secure=False
-    )
+    # 5. Set Cookies (secure in production)
+    set_auth_cookies(response, access_token, refresh_token)
     
     return {"success": True, "message": "User registered successfully"}
 
-#TODO: implement login and logout
+
 @router.post("/login")
-def login(response: Response, request: Request, login_data: LoginRequest, session: Session = Depends(get_session)):
+def login(
+    response: Response, 
+    request: Request, 
+    login_data: LoginRequest, 
+    session: Session = Depends(get_session),
+    _rate_limit: None = Depends(rate_limit_gaurd)  # Rate limit protection
+):
     # Capture Request Info
     ip = request.client.host
     user_agent = request.headers.get("user-agent", "Unknown")
@@ -147,29 +177,34 @@ def login(response: Response, request: Request, login_data: LoginRequest, sessio
     session.add(db_refresh_token)
     session.commit()
     
-    # 4. Set Cookies
-    response.set_cookie(
-        key="access_token",
-        value=f"Bearer {access_token}",
-        httponly=True,
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax",
-        secure=False 
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        expires=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        samesite="lax",
-        secure=False
-    )
+    # 4. Set Cookies (secure in production)
+    set_auth_cookies(response, access_token, refresh_token)
     
     return {"success": True}
 
-#TODO: implement login and logout
+
 @router.post("/logout")
-def logout():
-    return {"success": False}
+def logout(response: Response):
+    """
+    Logout the current user by clearing auth cookies.
+    """
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    return {"success": True}
+
+
+@router.post("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    """
+    Get the current authenticated user's information.
+    
+    Returns user data including admin status for frontend authorization.
+    """
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "is_active": current_user.is_active,
+        "is_admin": current_user.is_superuser,
+        "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+        "last_login": current_user.last_login_time.isoformat() if current_user.last_login_time else None
+    }

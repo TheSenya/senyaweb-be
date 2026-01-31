@@ -52,12 +52,19 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-from app.core.config import settings
+from app.core.config import settings, ENV
 from app.middleware.encryption import EncrpytionMiddleware
 from app.middleware.logger import LoggingMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
+
+# Determine if we're in production
+IS_PRODUCTION = ENV.lower() == "prod"
 
 # Add logging middleware first (outermost) so it logs all requests
 app.add_middleware(LoggingMiddleware)
+
+# Add security headers to all responses
+app.add_middleware(SecurityHeadersMiddleware, is_production=IS_PRODUCTION)
 
 app.add_middleware(EncrpytionMiddleware)
 
@@ -71,8 +78,10 @@ app.add_middleware(
 
 from app.api.endpoints import auth
 from app.api.endpoints import ai
+from app.api.endpoints import crypto
 app.include_router(auth.router)
 app.include_router(ai.router)
+app.include_router(crypto.router)
 
 @app.get("/")
 async def root():
@@ -80,4 +89,4 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"All is healthy and good"}
+    return {"status": "healthy", "message": "All is healthy and good"}

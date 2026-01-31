@@ -33,8 +33,16 @@ class EncrpytionMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
 
-        # Skip docs/options/health checks
-        if request.method == "OPTIONS" or request.url.path in ["/docs", "/openapi.json"]:
+        # Skip docs/options/health checks and public key endpoint
+        # The public key endpoint must be unencrypted so clients can get the key
+        # before they can encrypt anything
+        skip_paths = [
+            "/docs",
+            "/openapi.json",
+            "/health",
+            "/crypto/public-key",
+        ]
+        if request.method == "OPTIONS" or request.url.path in skip_paths:
             return await call_next(request)
 
 

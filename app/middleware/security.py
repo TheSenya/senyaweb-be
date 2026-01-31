@@ -15,7 +15,7 @@ class Blocked(BaseModel):
     last_attempt_time: Optional[datetime] = None
 
 BLOCKED = {} # TODO: change to store this in the DB or redis
-MAX_FAILURES = 5
+MAX_FAILURES = 10
 BLOCK_LOCKOUT_TIME = 15 * 60 # 15 minutes
 
 async def rate_limit_gaurd(req: Request):
