@@ -146,10 +146,19 @@ class EncrpytionMiddleware(BaseHTTPMiddleware):
                 
                 # 4. RETURN NEW RESPONSE
                 # WHY: We discard the original cleartext response and return the encrypted JSON wrapper.
-                return JSONResponse(
+                # IMPORTANT: We must preserve Set-Cookie headers from the original response!
+                encrypted_response_obj = JSONResponse(
                     content={"content": encrypted_response},
                     status_code=response.status_code
                 )
+                
+                # Copy Set-Cookie headers from original response (for auth cookies)
+                if "set-cookie" in response.headers:
+                    # There might be multiple Set-Cookie headers
+                    for cookie_header in response.headers.getlist("set-cookie"):
+                        encrypted_response_obj.headers.append("set-cookie", cookie_header)
+                
+                return encrypted_response_obj
             except Exception as e:
                 print(f"Encryption Error: {e}")
                 return Response(status_code=500, content="Secure Channel Error")

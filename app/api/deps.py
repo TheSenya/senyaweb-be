@@ -32,6 +32,8 @@ async def get_current_user(
         detail="Could not validate credentials",
     )
     
+    print(f"getting current user, access_token = {access_token}")   
+
     if not access_token:
         raise credentials_exception
         

@@ -1,30 +1,59 @@
-# Use official Python runtime as base image
-# python:3.11-slim is a lightweight version with only essential packages
-FROM python:3.11-slim
+# ============================================
+# SenyaWeb Backend Dockerfile (FastAPI)
+# ============================================
+# Multi-stage build for smaller image size
 
-ENV PYTHONDONTWRITEBYTECODE=1
+# Build stage
+FROM python:3.11-slim AS builder
 
-# Set working directory inside the container
-# All subsequent commands will run from this directory
 WORKDIR /app
 
-# Copy requirements.txt from your local machine to the container
-# This file should list all your Python dependencies
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
 COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Install Python dependencies
-# --no-cache-dir reduces image size by not storing pip cache
-RUN pip install --no-cache-dir -r requirements.txt
+# Production stage
+FROM python:3.11-slim
 
-# Copy all application code into the container
-# The . means copy everything from current directory
-COPY . .
+# Security: Don't run as root
+RUN useradd --create-home --shell /bin/bash appuser
 
-# Expose port 8000 (FastAPI's default port)
-# This documents which port the app uses (doesn't actually open it)
+WORKDIR /app
+
+# Copy Python packages from builder
+COPY --from=builder /root/.local /home/appuser/.local
+
+# Make sure scripts in .local are usable
+ENV PATH=/home/appuser/.local/bin:$PATH
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DATA_DIR=/app/data
+
+# Install runtime dependencies (curl for healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy application code
+COPY --chown=appuser:appuser . .
+
+# Create data directory for SQLite
+RUN mkdir -p /app/data && chown -R appuser:appuser /app/data
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
 EXPOSE 8000
 
-# Command to run when the container starts
-# uvicorn is the ASGI server that runs FastAPI
-# 0.0.0.0 means listen on all network interfaces
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

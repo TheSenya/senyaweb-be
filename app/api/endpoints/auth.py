@@ -41,6 +41,7 @@ def set_auth_cookies(
         httponly=True,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",  # Ensure cookie is sent for all paths
         samesite="strict" if IS_PRODUCTION else "lax",
         secure=IS_PRODUCTION
     )
@@ -50,6 +51,7 @@ def set_auth_cookies(
         httponly=True,
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         expires=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        path="/",  # Ensure cookie is sent for all paths
         samesite="strict" if IS_PRODUCTION else "lax",
         secure=IS_PRODUCTION
     )
